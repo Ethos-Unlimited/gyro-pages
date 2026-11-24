@@ -1,0 +1,84 @@
+<!doctype html>
+<!--
+  Gyro team link (docs/ARTIFACTS.md §3.6). Slack and GitHub don't make
+  gyro:// links clickable, so the copied team link is this https page:
+  #artifact?repo=<o>/<r>&id=<id> (or #handoff?…). It opens the same
+  gyro:// link at once and offers it as a button, with the GitHub folder
+  for someone without Gyro. It fetches nothing; the fragment never reaches
+  the server. The checks match parseShareLink in electron/artifacts/model.cjs.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Open in Gyro</title>
+<style>
+  /* Tokens from src/styles.css (docs/VISUAL.md): dark first, light below. */
+  :root {
+    color-scheme: dark;
+    --bg-app: #13111C; --bg-panel: #1B1827; --border: #363245;
+    --text-1: #EEECF4; --text-2: #B8B4C6; --text-3: #9A95AC;
+    --accent: #9877F4; --accent-text: #B5A0FA;
+    --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      color-scheme: light;
+      --bg-app: #FAF8FE; --bg-panel: #FFFFFF; --border: #D4CFE2;
+      --text-1: #1C1A24; --text-2: #4F4B5E; --text-3: #655F75;
+      --accent: #7C3AED; --accent-text: #6D2FD9;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg-app); color: var(--text-1); font: 400 14px/20px var(--font-ui); }
+  .card { width: 100%; max-width: 400px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+  h1 { margin: 0 0 4px; font-size: 16px; line-height: 22px; font-weight: 600; }
+  p { margin: 0 0 16px; color: var(--text-2); overflow-wrap: anywhere; }
+  .open { display: block; text-align: center; padding: 9px 14px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; text-decoration: none; }
+  .more { margin: 16px 0 0; font-size: 12px; line-height: 18px; color: var(--text-3); }
+  .more a { color: var(--accent-text); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main class="card">
+  <div id="ok" hidden>
+    <h1>Open in Gyro</h1>
+    <p id="what"></p>
+    <a class="open" id="app" href="#">Open in Gyro</a>
+    <p class="more">No Gyro yet? <a href="https://github.com/mathiasrandruut/gyro/releases/latest" rel="noreferrer">Get it</a>, then click the link again. Or <a id="web" href="#" rel="noreferrer">see it on GitHub</a>.</p>
+  </div>
+  <div id="bad" hidden>
+    <h1>That link doesn’t look right</h1>
+    <p>Ask for the link again.</p>
+  </div>
+</main>
+<script>
+(function () {
+  // The same as REPO_RE, ID_RE and validRepo in electron/artifacts/model.cjs
+  // (tests/public-pages.test.mjs runs this page against them).
+  var REPO_RE = /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/;
+  var ID_RE = /^[a-z0-9][a-z0-9-]{1,58}$/;
+  var m = /^#(artifact|handoff)\?(.*)$/.exec(location.hash);
+  var q = m ? new URLSearchParams(m[2]) : null;
+  var repo = q ? q.get('repo') || '' : '';
+  var id = q ? q.get('id') || '' : '';
+  if (!m || repo.length > 140 || !REPO_RE.test(repo) || /^\.+$/.test(repo.split('/')[1]) || !ID_RE.test(id)) {
+    document.getElementById('bad').hidden = false;
+    return;
+  }
+  var kind = m[1];
+  var app = 'gyro://' + kind + '?repo=' + repo + '&id=' + id;
+  document.getElementById('app').href = app;
+  document.getElementById('web').href = 'https://github.com/' + repo + '/tree/gyro-shared/' + (kind === 'handoff' ? 'handoffs/' : 'artifacts/') + id;
+  document.getElementById('what').textContent = (kind === 'handoff' ? 'A hand off' : 'An artifact') + ' shared in ' + repo + '. Only people on that team can open it.';
+  document.getElementById('ok').hidden = false;
+  location.href = app;
+})();
+</script>
+</body>
+</html>
